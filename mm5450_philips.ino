@@ -71,11 +71,11 @@ byte digits_bin[10] = {
 
 
 void loop() {
-  // example pattern
+
   sendMM5450(digits_bin[3] | 0b10000000, digits_bin[2], digits_bin[1], digits_bin[0], 0x00);
 
   delay(500);
-
+  // Clear display 
   sendMM5450(0x00 | 0b10000000 , 0x00, 0x00, 0x00, 0x00);
 
   delay(500);
