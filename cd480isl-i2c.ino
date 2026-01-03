@@ -210,7 +210,7 @@ const uint8_t Font5x7_180[][7] PROGMEM = {
 #define LIGHT_EFFECT_REG    0x0D
 
 // ================== CONSTANTS ==================
-#define PWM_CYCLE           64
+#define PWM_CYCLE           127
 
 #define LED1 0x60
 #define LED2 0x61
@@ -308,7 +308,7 @@ void driverInit(uint8_t address) {
 // =================================================
 // PRINT 2 CHARACTERS (same logic as Python)
 // =================================================
-void printChars(uint8_t address, char c1, char c2, bool dp=false) {
+void printChars(uint8_t address, char c1, char c2, bool dp=false, bool pause = false, bool repeat = false, bool track_time = false) {
   uint8_t buffer[8]  = {0};
   uint8_t buffer2[8] = {0};
 
@@ -317,6 +317,8 @@ void printChars(uint8_t address, char c1, char c2, bool dp=false) {
 
   // ----- First character (normal font)
   buffer[0] = dp ? 0b01000000 : 0x00;
+
+
   for (int i = 0; i < 5; i++) {
     buffer[i + 1] = pgm_read_byte(&Font5x7_full[idx1][i]);
   }
@@ -324,6 +326,20 @@ void printChars(uint8_t address, char c1, char c2, bool dp=false) {
   // ----- Second character (rotated 180° font)
   for (int i = 0; i < 7; i++) {
     buffer2[i] = pgm_read_byte(&Font5x7_180[idx2][6 - i]) << 1;
+  }
+
+  if(track_time) {
+    buffer[7] = buffer[7] | 0b00001000;
+  } else {
+    buffer[7] = buffer[7] | 0b00010000;
+  }
+
+  if (pause){
+    buffer[7] = buffer[7] | 0b00000100;
+  }
+
+  if (repeat){
+    buffer[7] = buffer[7] | 0b00000010;
   }
 
   writeBlock(address, 0x01, buffer2, 8);
@@ -388,8 +404,8 @@ uint8_t reverse8(uint8_t n) {
 void setup() {
   Wire.begin();
 
-  // Serial.begin(115200);
-  // Serial.println("MM5450 Receiver Ready");
+  Serial.begin(115200);
+  Serial.println("MM5450 Receiver Ready");
 
   pinMode(PIN_CLK,  INPUT);
   pinMode(PIN_EN,   INPUT);
@@ -437,16 +453,16 @@ void loop() {
             // writeBlock(0x0E, vbuffer, 8);
             // writeReg(COLUMN_UPDATE_REG, 0x00);
 
-            printChars(LED1, fontReverse(reverse8(b1) >> 1 ), fontReverse( reverse8(b2) >> 1 ));
-            printChars(LED2, fontReverse(reverse8(b3) >> 1 ), fontReverse( reverse8(b4) >> 1 ));
+            printChars(LED1, fontReverse(reverse8(b1) >> 1 ), fontReverse( reverse8(b2) >> 1 ), false, ( b2 & 0b10000000) == 0b10000000, nibble == 4, ( b4 & 0b10000000) == 0b10000000  );
+            printChars(LED2, fontReverse(reverse8(b3) >> 1 ), fontReverse( reverse8(b4) >> 1 ), ( b3 & 0b10000000) == 0b10000000, false, false );
 
-            // Serial.println("Frame:"); 
-            // Serial.print("b1 = "); Serial.println( fontReverse(reverse8(b1) >> 1 ));
-            // Serial.print("b2 = "); Serial.println(fontReverse( reverse8(b2) >> 1 )); 
-            // Serial.print("b3 = "); Serial.println(fontReverse( reverse8(b3) >> 1 ));
-            // Serial.print("b4 = "); Serial.println(fontReverse( reverse8(b4) >> 1));
-            // Serial.print("nibble = 0x"); Serial.println(nibble, HEX); 
-            // Serial.println("-----------");
+            Serial.println("Frame:"); 
+            Serial.print("b1 = "); Serial.println( b1, BIN );
+            Serial.print("b2 = "); Serial.println(b2, BIN ); 
+            Serial.print("b3 = "); Serial.println( b3, BIN );
+            Serial.print("b4 = "); Serial.println( b4, BIN);
+            Serial.print("nibble = 0x"); Serial.println(nibble); 
+            Serial.println("-----------");
             
             
         }
